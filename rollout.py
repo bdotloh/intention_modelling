@@ -28,8 +28,6 @@ tf.app.flags.DEFINE_integer(
 '''
 
 
-
-
 class Controller(object):
 
     def __init__(self, env_name='nurse'):
@@ -54,7 +52,7 @@ class Controller(object):
                 location.
         """
 
-        rewards = []
+        rewards = 0
         observations = []
         shape = self.env.world_map.shape
         full_obs = [np.zeros(
@@ -72,7 +70,6 @@ class Controller(object):
         #     for goal in agent_value.reward:  #.reward is a dictionary of agent's rewards {'B': 2, 'S': 2, 'T': 1}
         #         reward_alltime[agent_id][goal] = []  # creates {'agent-0': {'B': [], 'S': [], 'T': []}}
 
-
         for hor in range(horizon):
             agents = list(self.env.agents.values())   #list of agent objects
             observer.update_grid(agents[0].grid)      # update observer's grid from agent's grid (both fully observable)
@@ -80,14 +77,23 @@ class Controller(object):
             depth = 200
             action_list = []
             print('--------timestep %s--------' % hor)
-            print('timestep: {h}\n{g}'.format(h = hor, g = observer.grid))
-            #print('grid before')
-            #print(agents[0].grid)
+            # if hor == 0:
+            #   compute R(S)
+            # else:
+            #   check if S change
+            #   if change:
+            #       compute R(s) for all states
             for j in range(self.env.num_agents):
-                act = agents[j].policy(depth, self.env.goal_groups, self.env.goal_scores_dict, self.env.pos_dict)
+                act = agents[j].policy()
                 action_list.append(act)
 
-            obs, rew, dones, info, = self.env.step({'agent-%d' % k: action_list[k] for k in range(len(agents))})
+            obs, rew, dones, info, = self.env.step({'agent-%d' % k: action_list[k] for k in range(len(agents))},hor)
+            # print(obs['agent-0'][:,:,0])
+            # print(obs['agent-0'][:, :, 1])
+            # print(obs['agent-0'][:, :, -1])
+            # print(rew)
+            # print(dones)
+            # print(info)
             action_list.append(hor)    # very important for pyro to know that this observation is new. else if a
 
             sys.stdout.flush()
@@ -97,8 +103,12 @@ class Controller(object):
 
             rgb_arr = self.env.map_to_colors()
             full_obs[hor] = rgb_arr.astype(np.uint8)
+            rewards += rew['agent-0']
             # observations.append(obs['agent-0'])
             # rewards.append(rew['agent-0'])
+
+        [print(map_with_agents) for map_with_agents in self.env.maps]
+        print(rewards)
 
         return rewards, observations, full_obs
 
@@ -138,7 +148,7 @@ class Controller(object):
                                                    video_name=video_name)
 
 
-def main(horizon = 5):
+def main(horizon = 15):
     # c = Controller(env_name=FLAGS.env)
     c = Controller(env_name='nurse')
     c.rollout(horizon)
