@@ -31,6 +31,7 @@ class NurseAgent(Agent):
         self.state_beliefs = state_beliefs
         self.softmax = Softmax(dim=-1)
         self.ix_to_act = BASE_ACTIONS.copy()
+        self.possessions = []
 
     @property
     def action_space(self):
@@ -45,26 +46,26 @@ class NurseAgent(Agent):
         return False
 
     def complete(self, char):
-        print(char)
         """Defines how an agent interacts with the char it is standing on"""
         if char in self.state_beliefs.keys():
             if not self.state_beliefs[char]['requires']:
+                self.possessions.append(char)
                 return ' '
             else:
                 return char
         else:
             return char
 
-    def compute_reward(self,char):
-        if char in self.state_beliefs.keys():
-            if not self.state_beliefs[char]['requires']:
-                reward = 30
-                return reward
-            else:
-                return self.reward_this_turn
+    def compute_reward(self, char, goals_score):
+        print('CHAR',char)
+        print('GOALS_DICT',goals_score)
+        if char in goals_score.keys():
 
+            reward_this_turn = goals_score[char]
         else:
-            return self.reward_this_turn
+            reward_this_turn = 0
+
+        return reward_this_turn
 
     def get_maze(self):
         grid_height = self.grid.shape[0]
@@ -205,7 +206,6 @@ class NurseAgent(Agent):
         if sequential_goal:
             prerequisite_goals = [goal for goal in self.state_beliefs[sequential_goal]['requires']]
             index_of_final_prerequisite_goal_in_intention = max([intention.index(goal) for goal in prerequisite_goals])
-
 
             for i, goal in enumerate(intention):
                 if goal == sequential_goal:

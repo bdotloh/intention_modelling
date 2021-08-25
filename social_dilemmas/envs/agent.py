@@ -43,9 +43,6 @@ class Agent(object):
         self.row_size = row_size
         self.col_size = col_size
 
-        self.reward_this_turn = 0
-
-
     @property
     def action_space(self):
         """Identify the dimensions and bounds of the action space.
@@ -83,9 +80,7 @@ class Agent(object):
 
     def compute_reward(self):
         raise NotImplementedError
-        # reward = self.reward_this_turn
-        # self.reward_this_turn = 0
-        # return reward
+
 
     def set_pos(self, new_pos):
         self.pos = np.array(new_pos)

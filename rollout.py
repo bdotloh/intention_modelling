@@ -148,7 +148,7 @@ class Controller(object):
                                                    video_name=video_name)
 
 
-def main(horizon = 15):
+def main(horizon = 19):
     # c = Controller(env_name=FLAGS.env)
     c = Controller(env_name='nurse')
     c.rollout(horizon)

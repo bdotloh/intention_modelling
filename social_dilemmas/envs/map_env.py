@@ -199,11 +199,9 @@ class MapEnv(MultiAgentEnv):
 
         for agent in self.agents.values():
             pos = agent.get_pos()
-
-            reward = agent.compute_reward(self.world_map[pos[0], pos[1]])
-            rewards[agent.agent_id] = reward
-
             new_char = agent.complete(self.world_map[pos[0], pos[1]])
+            rewards[agent.agent_id] = agent.compute_reward(self.world_map[pos[0], pos[1]], self.goal_scores_dict)
+            print(rewards[agent.agent_id])
             self.world_map[pos[0], pos[1]] = new_char
 
         # execute custom moves like firing
