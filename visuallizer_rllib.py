@@ -147,9 +147,9 @@ def visualizer_rllib(args):
 
             if agent.config["clip_actions"]:
                 # clipped_action = clip_action(action, env.action_space)
-                next_state, reward, done, _ = env.step(action)
+                next_state, reward, done, _ = env.step(action, )
             else:
-                next_state, reward, done, _ = env.step(action)
+                next_state, reward, done, _ = env.step(action, )
 
             if multiagent:
                 done = done["__all__"]

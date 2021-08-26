@@ -7,7 +7,7 @@ import pyro.distributions as dist
 import torch
 
 from social_dilemmas.envs.map_env import MapEnv
-from social_dilemmas.constants import WARD_MAP, WARD_MAP_2, GOALS_LIST,WARD_MAP_V2_1
+from social_dilemmas.constants import WARD_MAP, WARD_MAP_2, GOALS_LIST, WARD_MAP_V2_1
 from social_dilemmas.envs.nurse_agent import NurseAgent
 
 NON_URGENT_GOALS_MAX_REWARD = 30
@@ -24,13 +24,13 @@ class NurseEnv(MapEnv):
 
         self.goals_dict = GOALS_LIST  # store goals' attribute (coordinates, requirements, urgency)
 
-        #print('BASE_MAP',self.base_map)
+        # print('BASE_MAP',self.base_map)
         for row in range(self.base_map.shape[0]):
             for col in range(self.base_map.shape[1]):
                 if self.base_map[row, col] in self.goals_dict:
                     self.goals_dict[self.base_map[row, col]]['location'] = (row, col)
 
-        #print('goals_dict', self.goals_dict)
+        # print('goals_dict', self.goals_dict)
 
         self.respawn_prob = {i: 0.1 for i in GOALS_LIST}  # make dict of potential goal spawn points
         self.goal_scores_dict = {}
@@ -49,7 +49,7 @@ class NurseEnv(MapEnv):
         agents = list(self.agents.values())
         return agents[0].observation_space
 
-    def custom_map_update(self,hor):
+    def custom_map_update(self, hor):
         spawn_points = self.spawn_ward_goal(hor)
         self.update_map(spawn_points)
         # print('spawn points', spawn_points)
@@ -65,7 +65,7 @@ class NurseEnv(MapEnv):
 
     def update_goal_scores(self, spawn_points=[], initial=True):
         agent = list(self.agents.values())[0]
-        if initial:    # HARDCODE: c,d initialised as 0 score goals
+        if initial:  # HARDCODE: c,d initialised as 0 score goals
             self.goal_scores_dict = {i: False for i in self.goals_dict.keys()}
             self.goal_scores_dict['a'] = NON_URGENT_GOALS_MAX_REWARD
             self.goal_scores_dict['b'] = NON_URGENT_GOALS_MAX_REWARD
@@ -87,7 +87,7 @@ class NurseEnv(MapEnv):
 
             if self.goal_scores_dict['S']:
                 self.goal_scores_dict['S'] = self.goal_scores_dict['S'] * math.exp(
-                        DECAY_CONSTANT * self.goals_relative_timestep['S'])
+                    DECAY_CONSTANT * self.goals_relative_timestep['S'])
                 self.goals_relative_timestep['S'] += 1
 
             if all(goal in agent.possessions for goal in self.goals_dict['c']['requires']):
@@ -95,17 +95,6 @@ class NurseEnv(MapEnv):
 
             # if all(goal in agent.possessions for goal in self.goals_dict['d']['requires']):
             #     self.goal_scores_dict['d'] = NON_URGENT_GOALS_MAX_REWARD
-
-                # for i in GOALS_LIST.keys():
-                #     if i == 'S':  # decay goal reward (doesnt matter if it exists or not, it will be handled in the computation of group reward
-                #         self.goals_relative_timestep[i] += 1
-                #         self.goal_scores_dict[i] = URGENT_GOAL_MAX_REWARD * math.exp(
-                #             DECAY_CONSTANT * self.goals_relative_timestep[i])
-                #     else:
-                #         self.goal_scores_dict[i] = NON_URGENT_GOALS_MAX_REWARD
-            # print('goals scores',self.goal_scores_dict)
-            # print('self.goals_relative_timestep S', self.goals_relative_timestep['S'])
-
 
     def setup_agents(self):
         """
@@ -119,8 +108,8 @@ class NurseEnv(MapEnv):
         map_with_agents = self.get_map_with_agents()
         for i in range(self.num_agents):
             agent_id = 'agent-' + str(i)
-            #spawn_point = self.spawn_point()
-            spawn_point = np.array([7,8])
+            # spawn_point = self.spawn_point()
+            spawn_point = np.array([7, 8])
             print('agent spawn point', spawn_point)
             rotation = self.spawn_rotation()
             # reward_dict = {}
@@ -133,10 +122,11 @@ class NurseEnv(MapEnv):
             # print(agent_id, 'REWARD', reward_dict)
 
             # agent = NurseAgent(agent_id, spawn_point, rotation, map_with_agents, self.urgency, reward_dict)
-            agent = NurseAgent(agent_id, spawn_point, rotation, map_with_agents, state_beliefs=copy.deepcopy(self.goals_dict))
+            agent = NurseAgent(agent_id, spawn_point, rotation, map_with_agents,
+                               state_beliefs=copy.deepcopy(self.goals_dict))
             self.agents[agent_id] = agent
 
-    def spawn_ward_goal(self,hor):
+    def spawn_ward_goal(self, hor):
         """
         :return:
         spawn_points: list of spawn points where each element is tuple(row, col, goal)
@@ -146,7 +136,7 @@ class NurseEnv(MapEnv):
         if hor == 2 or hor == 11:
             print('spawning S')
             row, col = self.goals_dict['S']['location']
-            spawn_points.append((row,col,'S'))
+            spawn_points.append((row, col, 'S'))
 
         # for goal, attributes in self.goals_dict.items():
         #     if hor == 11:   #11
@@ -164,7 +154,7 @@ class NurseEnv(MapEnv):
         #             row, col = attributes['location']
         #             spawn_points.append((row,col,goal))
 
-    # for goal, attributes in self.goals_dict.items():
+        # for goal, attributes in self.goals_dict.items():
         #     row, col = attributes['location']
         #     # get a coordinate of a possible goal location
         #     # condition: if world_map label ('@', 'X') is not a goal ['B', 'S', 'T']
@@ -177,7 +167,6 @@ class NurseEnv(MapEnv):
         #         if rand_num < self.respawn_prob[goal]:
         #             spawn_points.append((row, col, goal))
         return spawn_points
-
 
     def spawn_initial_goals(self):
         spawn_points = []

@@ -12,7 +12,7 @@ import torch
 from torch.nn import Softmax
 from itertools import permutations
 
-#NURSE_ACTIONS = BASE_ACTIONS.copy()
+# NURSE_ACTIONS = BASE_ACTIONS.copy()
 NURSE_VIEW_SIZE = 7
 MAX_ASTAR_DEPTH = 2000
 DISTANCE_FACTOR = 1
@@ -57,8 +57,8 @@ class NurseAgent(Agent):
             return char
 
     def compute_reward(self, char, goals_score):
-        print('CHAR',char)
-        print('GOALS_DICT',goals_score)
+        # print('CHAR',char)
+        # print('GOALS_DICT',goals_score)
         if char in goals_score.keys():
 
             reward_this_turn = goals_score[char]
@@ -68,13 +68,13 @@ class NurseAgent(Agent):
         return reward_this_turn
 
     def get_maze(self):
-        grid_height = self.grid.shape[0]
-        grid_width = self.grid.shape[1]
+        grid_height = self.env.shape[0]
+        grid_width = self.env.shape[1]
         maze = []
         for row_elem in range(grid_height):
             row = []
             for column_elem in range(grid_width):
-                if self.grid[row_elem][column_elem] == '@':
+                if self.env[row_elem][column_elem] == '@':
                     row.append(1)
                 else:
                     row.append(0)
@@ -94,10 +94,10 @@ class NurseAgent(Agent):
         urgent_goals = [goal for goal in self.urgency if self.urgency[goal]]
         # maze marking with 1 and 0: 1-not urgent, 0-urgent
         maze = []
-        for row_elem in range(self.grid.shape[0]):
+        for row_elem in range(self.env.shape[0]):
             row = []
-            for column_elem in range(self.grid.shape[1]):
-                if self.grid[row_elem][column_elem] == ' ' or self.grid[row_elem][column_elem] in urgent_goals:
+            for column_elem in range(self.env.shape[1]):
+                if self.env[row_elem][column_elem] == ' ' or self.env[row_elem][column_elem] in urgent_goals:
                     row.append(0)
                 else:
                     row.append(1)
@@ -168,7 +168,7 @@ class NurseAgent(Agent):
         """
         intention_cost = 0
         path_to_intention = []
-        urgent_goal = None   #store urgent goals in list
+        urgent_goal = None  # store urgent goals in list
         for goal, beliefs in state_beliefs.items():
             if beliefs['urgency']:
                 urgent_goal = goal
@@ -176,7 +176,8 @@ class NurseAgent(Agent):
         if not urgent_goal:
             pass
         elif urgent_goal:
-            index_of_final_urgent_goal_in_intention = max([goal_index for goal_index in range(len(intention)) if intention[goal_index] in urgent_goal])
+            index_of_final_urgent_goal_in_intention = max(
+                [goal_index for goal_index in range(len(intention)) if intention[goal_index] in urgent_goal])
 
         cost, paths = self.compute_distance_cost_from_agent(MAX_ASTAR_DEPTH, intention[0])
         path_to_intention.extend(random.choice(paths)[1:])
@@ -184,9 +185,9 @@ class NurseAgent(Agent):
             cost = cost * 3
         intention_cost += cost
         for i, goal in enumerate(intention):
-            if i < len(intention)-1:
+            if i < len(intention) - 1:
                 from_loc = self.state_beliefs[intention[i]]['location']
-                to_loc = self.state_beliefs[intention[i+1]]['location']
+                to_loc = self.state_beliefs[intention[i + 1]]['location']
                 cost, paths = self.compute_distance_cost(MAX_ASTAR_DEPTH, from_loc, to_loc)
                 path_to_intention.extend(random.choice(paths)[1:])
                 if urgent_goal:
@@ -214,7 +215,7 @@ class NurseAgent(Agent):
                     else:
                         intentions_reward += 100
                 else:
-                    intentions_reward+=100
+                    intentions_reward += 100
 
         else:
             intentions_reward = len(intention) * 100
@@ -226,12 +227,12 @@ class NurseAgent(Agent):
         paths = []
 
         for i, intention in enumerate(intention_space):
-            reward = self.compute_intention_reward(intention,state_beliefs)
+            reward = self.compute_intention_reward(intention, state_beliefs)
             cost, path = self.compute_intention_cost(intention, state_beliefs)
             utility = reward - cost
             unnormalised_utilities[i] = utility
             paths.append(path)
-            #print('unnorm({}) = {} - {} = {}'.format(intention,reward,cost,utility))
+            # print('unnorm({}) = {} - {} = {}'.format(intention,reward,cost,utility))
 
         normalised_utilities = self.softmax(unnormalised_utilities)
 
@@ -244,7 +245,7 @@ class NurseAgent(Agent):
         sampled_intention = intention_space[sampled_intention_ix]
         path_of_sampled_intention = paths[sampled_intention_ix]
 
-        #print('$$$$sampled intention {} $$$$'.format(sampled_intention))
+        # print('$$$$sampled intention {} $$$$'.format(sampled_intention))
 
         return path_of_sampled_intention
 
@@ -267,7 +268,7 @@ class NurseAgent(Agent):
         available_goals = []
         for goal, beliefs in self.state_beliefs.items():
             goal_loc = beliefs['location']
-            if self.grid[goal_loc[0]][goal_loc[1]] == goal:
+            if self.env[goal_loc[0]][goal_loc[1]] == goal:
                 # print('goal {} is available'.format(goal_label))
                 available_goals.append(goal)
         return available_goals
@@ -282,7 +283,6 @@ class NurseAgent(Agent):
                         beliefs['requires'].remove(goal)
 
         print('state beliefs', state_beliefs)
-
 
         if state_beliefs:
             intention_space = []

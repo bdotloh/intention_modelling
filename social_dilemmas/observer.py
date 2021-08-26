@@ -20,7 +20,7 @@ def Marginal(fn):  # takes a function as in input. returns all the possible enum
 
 class Observer():
     def __init__(self, grid, explorer_reward= None):
-        self.grid = grid                                    # initialize grid = looks like the map in constants
+        self.grid = grid                                    # initialize env = looks like the map in constants
         self.agent_urgency = {'B': True, 'S': False, 'T': False}
         self.rew_prior = {}                                 # distribution over 27 possibilities
         self.urgency_prior = [1., 0, 0]
@@ -54,7 +54,7 @@ class Observer():
 
     def get_agent_locs(self):
         """
-        Gets locations of agents from one observation from the grid
+        Gets locations of agents from one observation from the env
         Agents are labeled by numbers '0-9'
         This also updates the number of agents observed and is stored in agent_no
         :return:
@@ -174,7 +174,7 @@ class Observer():
         Creates agents:
         step1: sample a reward value from all possible reward combinations (1-27). this is r_sample
         step2: convert r_sample to a "reward" dictionary {'B': 2, 'S': 1, 'T': 0} for each agent
-        step3: create nurse agent using agent_locs, grid, agent_urgency and reward (from step2)
+        step3: create nurse agent using agent_locs, env, agent_urgency and reward (from step2)
         :return:
         agent list: each nurse agent is created using the sampled urgency and sampled reward
         r_sample: dict of agents sampled reward in the format: {agent-x: tensor(sampled reward))

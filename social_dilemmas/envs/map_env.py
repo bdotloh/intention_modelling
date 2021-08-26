@@ -35,10 +35,8 @@ DEFAULT_COLOURS = {' ': [0, 0, 0],  # Black background
                    'm': [255, 222, 173],  # Bed
                    'n': [255, 222, 173],  # Bed
                    'S': [95, 158, 160],  # Blue nurse station
-                   '@': [105, 105, 105], #Grey walls
-                   'T': [188,143,143], #Toilet
-
-
+                   '@': [105, 105, 105],  # Grey walls
+                   'T': [188, 143, 143],  # Toilet
 
                    # Colours for agents. R value is a unique identifier
                    '1': [205, 92, 92],  # Red
@@ -50,6 +48,7 @@ DEFAULT_COLOURS = {' ': [0, 0, 0],  # Black background
                    '7': [204, 0, 204],  # Magenta
                    '8': [216, 30, 54],  # Red
                    '9': [2, 81, 154]}  # Blue
+
 
 # the axes look like
 # graphic is here to help me get my head in order
@@ -191,7 +190,7 @@ class MapEnv(MultiAgentEnv):
         self.beam_pos = []
         agent_actions = {}
         for agent_id, action in actions.items():
-            #agent_action = self.agents[agent_id].action_map(action)
+            # agent_action = self.agents[agent_id].action_map(action)
             agent_actions[agent_id] = action
 
         # move
@@ -201,7 +200,6 @@ class MapEnv(MultiAgentEnv):
             pos = agent.get_pos()
             new_char = agent.complete(self.world_map[pos[0], pos[1]])
             rewards[agent.agent_id] = agent.compute_reward(self.world_map[pos[0], pos[1]], self.goal_scores_dict)
-            print(rewards[agent.agent_id])
             self.world_map[pos[0], pos[1]] = new_char
 
         # execute custom moves like firing
@@ -211,10 +209,10 @@ class MapEnv(MultiAgentEnv):
         self.custom_map_update(hor)
         map_with_agents = self.get_map_with_agents()
         self.maps.append(map_with_agents)
-        #print(map_with_agents)
+        # print(map_with_agents)
 
         for agent in self.agents.values():
-            agent.grid = map_with_agents
+            agent.env = map_with_agents
             rgb_arr = self.map_to_colors(agent.get_state(), self.color_map)
             agent.orientation = 'UP'
             rgb_arr = self.rotate_view(agent.orientation, rgb_arr)
@@ -247,8 +245,8 @@ class MapEnv(MultiAgentEnv):
 
         observations = {}
         for agent in self.agents.values():
-            agent.grid = map_with_agents
-            # agent.grid = util.return_view(map_with_agents, agent.pos,
+            agent.env = map_with_agents
+            # agent.env = util.return_view(map_with_agents, agent.pos,
             #                               agent.row_size, agent.col_size)
             rgb_arr = self.map_to_colors(agent.get_state(), self.color_map)
             observations[agent.agent_id] = rgb_arr
@@ -272,8 +270,8 @@ class MapEnv(MultiAgentEnv):
 
         for agent_id, agent in self.agents.items():
             # If agent is not within map, skip.
-            if not (agent.pos[0] >= 0 and agent.pos[0] < grid.shape[0] and
-                    agent.pos[1] >= 0 and agent.pos[1] < grid.shape[1]):
+            if not (0 <= agent.pos[0] < grid.shape[0] and
+                    0 <= agent.pos[1] < grid.shape[1]):
                 continue
 
             grid[agent.pos[0], agent.pos[1]] = 'P'
@@ -295,8 +293,8 @@ class MapEnv(MultiAgentEnv):
             char_id = str(int(agent_id[-1]) + 1)
 
             # If agent is not within map, skip.
-            if not(agent.pos[0] >= 0 and agent.pos[0] < grid.shape[0] and
-                   agent.pos[1] >= 0 and agent.pos[1] < grid.shape[1]):
+            if not (0 <= agent.pos[0] < grid.shape[0] and
+                    0 <= agent.pos[1] < grid.shape[1]):
                 continue
 
             grid[agent.pos[0], agent.pos[1]] = char_id
@@ -313,7 +311,7 @@ class MapEnv(MultiAgentEnv):
 
         # check for multiple agents
         for i in range(self.num_agents):
-            if count_dict[str(i+1)] != 1:
+            if count_dict[str(i + 1)] != 1:
                 print('Error! Wrong number of agent', i, 'in map!')
                 return False
         return True
@@ -503,7 +501,7 @@ class MapEnv(MultiAgentEnv):
                         if conflict_cell_free:
                             self.agents[agent_to_slot[index]].update_agent_pos(move)
                             agent_by_pos = {tuple(agent.get_pos()):
-                                            agent.agent_id for agent in self.agents.values()}
+                                                agent.agent_id for agent in self.agents.values()}
                         # ------------------------------------
                         # remove all the other moves that would have conflicted
                         remove_indices = np.where((search_list == move).all(axis=1))[0]
@@ -516,7 +514,7 @@ class MapEnv(MultiAgentEnv):
             # make the remaining un-conflicted moves
             while len(agent_moves.items()) > 0:
                 agent_by_pos = {tuple(agent.get_pos()):
-                                agent.agent_id for agent in self.agents.values()}
+                                    agent.agent_id for agent in self.agents.values()}
                 num_moves = len(agent_moves.items())
                 moves_copy = agent_moves.copy()
                 del_keys = []

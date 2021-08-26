@@ -58,7 +58,7 @@ class Controller(object):
         full_obs = [np.zeros(
             (shape[0], shape[1], 3), dtype=np.uint8) for i in range(horizon)]
 
-        observer = Observer(list(self.env.agents.values())[0].grid.copy())
+        observer = Observer(list(self.env.agents.values())[0].env.copy())
 
         # intialize urgency_alltime
         # urgency_alltime = {i: [] for i in self.env.urgency}  # create an urgency dict {'B': [], 'S': [], 'T': []}
@@ -72,7 +72,7 @@ class Controller(object):
 
         for hor in range(horizon):
             agents = list(self.env.agents.values())   #list of agent objects
-            observer.update_grid(agents[0].grid)      # update observer's grid from agent's grid (both fully observable)
+            observer.update_grid(agents[0].env)      # update observer's env from agent's env (both fully observable)
 
             depth = 200
             action_list = []
@@ -87,13 +87,7 @@ class Controller(object):
                 act = agents[j].policy()
                 action_list.append(act)
 
-            obs, rew, dones, info, = self.env.step({'agent-%d' % k: action_list[k] for k in range(len(agents))},hor)
-            # print(obs['agent-0'][:,:,0])
-            # print(obs['agent-0'][:, :, 1])
-            # print(obs['agent-0'][:, :, -1])
-            # print(rew)
-            # print(dones)
-            # print(info)
+            obs, rew, dones, info, = self.env.step({'agent-%d' % k: action_list[k] for k in range(len(agents))}, hor)
             action_list.append(hor)    # very important for pyro to know that this observation is new. else if a
 
             sys.stdout.flush()

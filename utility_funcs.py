@@ -121,7 +121,7 @@ def change_to_sprite(image):
 
 
 def return_view(grid, pos, row_size, col_size):
-    """Given a map grid, position and view window, returns correct map part
+    """Given a map env, position and view window, returns correct map part
     Note, if the agent asks for a view that exceeds the map bounds,
     it is padded with zeros
     Parameters

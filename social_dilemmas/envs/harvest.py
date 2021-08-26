@@ -41,9 +41,9 @@ class HarvestEnv(MapEnv):
             rotation = self.spawn_rotation()
             grid = map_with_agents
             agent = HarvestAgent(agent_id, spawn_point, rotation, grid)
-            # grid = util.return_view(map_with_agents, spawn_point,
+            # env = util.return_view(map_with_agents, spawn_point,
             #                         HARVEST_VIEW_SIZE, HARVEST_VIEW_SIZE)
-            # agent = HarvestAgent(agent_id, spawn_point, rotation, grid)
+            # agent = HarvestAgent(agent_id, spawn_point, rotation, env)
             self.agents[agent_id] = agent
 
     def custom_reset(self):
