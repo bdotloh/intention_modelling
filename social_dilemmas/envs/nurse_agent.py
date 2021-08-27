@@ -276,6 +276,26 @@ class NurseAgent(Agent):
         return available_goals
 
     def policy(self, depth, goals_score, goals_dict, spawn_points):
+        """ R
+
+        Parameters
+        ----------
+        depth: int
+            ASTAR depth
+
+        goals_score: dict {goal : reward}
+            Goal's reward; changes with agent's action.
+            e.g., goal c has requirements. If requirements completed, reward = 30, else reward = 0
+
+        goals_dict: dict {goal : {location: x,y, urgency: TRUE/FALSE, requires: [goal(s)]}}
+
+        spawn_points: TRUE/FALSE
+            Whether there are new goals
+
+        Returns
+        -------
+        Action: str
+        """
         current_goals = self.get_available_goals(goals_dict)
         if not current_goals:
             print('no goals')
