@@ -139,9 +139,9 @@ GOALS_LIST = {
     'a': {'location': None, 'urgency': False, 'requires': None},
     'b': {'location': None, 'urgency': False, 'requires': None},
     'c': {'location': None, 'urgency': False, 'requires': ['b','a']},
-    # 'd': {'location': None, 'urgency': False, 'requires': ['e']},
-    # 'e': {'location': None, 'urgency': False, 'requires': None},
-    # 'f': {'location': None, 'urgency': False, 'requires': None},
-    'S': {'location': None, 'urgency': True, 'requires': None}
-    # 'T': {'location': None, 'urgency': False, 'requires': None}
+    'd': {'location': None, 'urgency': False, 'requires': ['e']},
+    'e': {'location': None, 'urgency': False, 'requires': None},
+    'f': {'location': None, 'urgency': False, 'requires': None},
+    'S': {'location': None, 'urgency': True, 'requires': None},
+    'T': {'location': None, 'urgency': False, 'requires': None}
 }

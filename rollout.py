@@ -58,36 +58,22 @@ class Controller(object):
         full_obs = [np.zeros(
             (shape[0], shape[1], 3), dtype=np.uint8) for i in range(horizon)]
 
-        observer = Observer(list(self.env.agents.values())[0].env.copy())
-
-        # intialize urgency_alltime
-        # urgency_alltime = {i: [] for i in self.env.urgency}  # create an urgency dict {'B': [], 'S': [], 'T': []}
-
-        # initialize reward_alltime  {'agent-0': {'B': [], 'S': [], 'T': []}}
-        # reward_alltime = {}
-        # for agent_id, agent_value in self.env.agents.items(): # self.env.agents is a dictionary of agents {'agent-0': <NurseAgent object>, ...}
-        #     reward_alltime[agent_id] = {}
-        #     for goal in agent_value.reward:  #.reward is a dictionary of agent's rewards {'B': 2, 'S': 2, 'T': 1}
-        #         reward_alltime[agent_id][goal] = []  # creates {'agent-0': {'B': [], 'S': [], 'T': []}}
+        observer = Observer(list(self.env.agents.values())[0].grid.copy())
 
         for hor in range(horizon):
+            print('GOALSCORES {}'.format(self.env.goal_scores_dict))
             agents = list(self.env.agents.values())   #list of agent objects
-            observer.update_grid(agents[0].env)      # update observer's env from agent's env (both fully observable)
+            observer.update_grid(agents[0].grid)      # update observer's env from agent's env (both fully observable)
 
-            depth = 200
+            depth = 2000
             action_list = []
             print('--------timestep %s--------' % hor)
-            # if hor == 0:
-            #   compute R(S)
-            # else:
-            #   check if S change
-            #   if change:
-            #       compute R(s) for all states
+
             for j in range(self.env.num_agents):
-                act = agents[j].policy()
+                act = agents[j].policy(depth, self.env.goal_scores_dict, self.env.goals_dict, self.env.new_goal_appear)
                 action_list.append(act)
 
-            obs, rew, dones, info, = self.env.step({'agent-%d' % k: action_list[k] for k in range(len(agents))}, hor)
+            obs, rew, dones, info, = self.env.step({'agent-%d' % k: action_list[k] for k in range(len(agents))})
             action_list.append(hor)    # very important for pyro to know that this observation is new. else if a
 
             sys.stdout.flush()
@@ -142,7 +128,7 @@ class Controller(object):
                                                    video_name=video_name)
 
 
-def main(horizon = 19):
+def main(horizon = 50):
     # c = Controller(env_name=FLAGS.env)
     c = Controller(env_name='nurse')
     c.rollout(horizon)

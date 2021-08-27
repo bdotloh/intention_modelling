@@ -769,7 +769,7 @@ class TestHarvestEnv(unittest.TestCase):
         self.assertEqual(num_apples, 5)
 
         # Now, if a point is temporarily obscured by a beam but an apple should spawn there
-        # check that the apple still spawns there
+        # check that the apple still new_goal_appear there
         self.env = HarvestEnv(ascii_map=MINI_HARVEST_MAP, num_agents=2)
         self.env.reset()
         self.move_agent('agent-0', [3, 1])

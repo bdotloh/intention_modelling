@@ -38,8 +38,7 @@ class Agent(object):
         self.agent_id = agent_id
         self.pos = np.array(start_pos)
         self.orientation = start_orientation
-        # TODO(ev) change env to env, this name is not very informative
-        self.env = grid
+        self.grid = grid
         self.row_size = row_size
         self.col_size = col_size
 
@@ -75,7 +74,7 @@ class Agent(object):
         raise NotImplementedError
 
     def get_state(self):
-        return util.return_view(self.env, self.get_pos(),
+        return util.return_view(self.grid, self.get_pos(),
                                 self.row_size, self.col_size)
 
     def compute_reward(self):
@@ -100,7 +99,7 @@ class Agent(object):
         return self.orientation
 
     def get_map(self):
-        return self.env
+        return self.grid
 
     def return_valid_pos(self, new_pos):
         """Checks that the next pos is legal, if not return current pos"""
@@ -108,7 +107,7 @@ class Agent(object):
         new_row, new_col = ego_new_pos
         # you can't walk through walls
         temp_pos = new_pos.copy()
-        if self.env[new_row, new_col] == '@':
+        if self.grid[new_row, new_col] == '@':
             temp_pos = self.get_pos()
         return temp_pos
 
@@ -127,7 +126,7 @@ class Agent(object):
         new_row, new_col = ego_new_pos
         # you can't walk through walls
         temp_pos = new_pos.copy()
-        if self.env[new_row, new_col] == '@':
+        if self.grid[new_row, new_col] == '@':
             temp_pos = self.get_pos()
         self.set_pos(temp_pos)
         # TODO(ev) list array consistency

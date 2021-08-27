@@ -10,6 +10,7 @@ import numpy as np
 
 import torch
 from torch.nn import Softmax
+from torch.distributions.categorical import Categorical
 from itertools import permutations
 
 # NURSE_ACTIONS = BASE_ACTIONS.copy()
@@ -22,8 +23,7 @@ TIME_COST_FACTOR = 1
 class NurseAgent(Agent):
     def __init__(self, agent_id, start_pos, start_orientation, grid, state_beliefs, view_len=NURSE_VIEW_SIZE):
         self.view_len = view_len
-        # self.urgency = dict(urgency)
-        # self.reward = dict(reward)
+
         super().__init__(agent_id, start_pos, start_orientation, grid, view_len, view_len)
         # remember what you've stepped on
         self.update_agent_pos(start_pos)
@@ -32,6 +32,9 @@ class NurseAgent(Agent):
         self.softmax = Softmax(dim=-1)
         self.ix_to_act = BASE_ACTIONS.copy()
         self.possessions = []
+        self.intention_list = []
+        self.intention_path = []
+        self.intention_relative_timestep = 0
 
     @property
     def action_space(self):
@@ -45,22 +48,20 @@ class NurseAgent(Agent):
     def get_done(self):
         return False
 
-    def complete(self, char):
+    def complete(self, char, goals_dict):
         """Defines how an agent interacts with the char it is standing on"""
-        if char in self.state_beliefs.keys():
-            if not self.state_beliefs[char]['requires']:
+        if char in goals_dict.keys():
+            if goals_dict[char]['requires'] and \
+                    all(goal in self.possessions for goal in goals_dict[char]['requires']):
                 self.possessions.append(char)
-                return ' '
             else:
-                return char
+                self.possessions.append(char)
+            return ' '
         else:
             return char
 
     def compute_reward(self, char, goals_score):
-        # print('CHAR',char)
-        # print('GOALS_DICT',goals_score)
         if char in goals_score.keys():
-
             reward_this_turn = goals_score[char]
         else:
             reward_this_turn = 0
@@ -68,13 +69,13 @@ class NurseAgent(Agent):
         return reward_this_turn
 
     def get_maze(self):
-        grid_height = self.env.shape[0]
-        grid_width = self.env.shape[1]
+        grid_height = self.grid.shape[0]
+        grid_width = self.grid.shape[1]
         maze = []
         for row_elem in range(grid_height):
             row = []
             for column_elem in range(grid_width):
-                if self.env[row_elem][column_elem] == '@':
+                if self.grid[row_elem][column_elem] == '@':
                     row.append(1)
                 else:
                     row.append(0)
@@ -94,10 +95,10 @@ class NurseAgent(Agent):
         urgent_goals = [goal for goal in self.urgency if self.urgency[goal]]
         # maze marking with 1 and 0: 1-not urgent, 0-urgent
         maze = []
-        for row_elem in range(self.env.shape[0]):
+        for row_elem in range(self.grid.shape[0]):
             row = []
-            for column_elem in range(self.env.shape[1]):
-                if self.env[row_elem][column_elem] == ' ' or self.env[row_elem][column_elem] in urgent_goals:
+            for column_elem in range(self.grid.shape[1]):
+                if self.grid[row_elem][column_elem] == ' ' or self.grid[row_elem][column_elem] in urgent_goals:
                     row.append(0)
                 else:
                     row.append(1)
@@ -115,15 +116,15 @@ class NurseAgent(Agent):
         return action
         # 3- go right; 2 - go left; 1 - gdo down; 0 - go up;
 
-    def compute_distance_cost_from_agent(self, depth, goal, distance_factor=DISTANCE_FACTOR):
+    def compute_distance_cost_from_agent(self, goal, goals_dict, depth=MAX_ASTAR_DEPTH, distance_factor=DISTANCE_FACTOR):
         distances = []
         paths_to_this_goal_label = []
 
         agent_x = self.pos[0]
         agent_y = self.pos[1]
 
-        goal_x = self.state_beliefs[goal]['location'][0]
-        goal_y = self.state_beliefs[goal]['location'][-1]
+        goal_x = goals_dict[goal]['location'][0]
+        goal_y = goals_dict[goal]['location'][-1]
 
         all_paths_to_a_goal_loc = astar_allpaths(self.get_maze(), (agent_x, agent_y), (goal_x, goal_y),
                                                  search_depth=depth)
@@ -179,7 +180,7 @@ class NurseAgent(Agent):
             index_of_final_urgent_goal_in_intention = max(
                 [goal_index for goal_index in range(len(intention)) if intention[goal_index] in urgent_goal])
 
-        cost, paths = self.compute_distance_cost_from_agent(MAX_ASTAR_DEPTH, intention[0])
+        cost, paths = self.compute_distance_cost_from_agent(intention[0], MAX_ASTAR_DEPTH)
         path_to_intention.extend(random.choice(paths)[1:])
         if urgent_goal:
             cost = cost * 3
@@ -264,37 +265,57 @@ class NurseAgent(Agent):
             action = 4
         return self.ix_to_act[action]
 
-    def get_available_goals(self):
+    def get_available_goals(self, goals_dict):
         available_goals = []
-        for goal, beliefs in self.state_beliefs.items():
-            goal_loc = beliefs['location']
-            if self.env[goal_loc[0]][goal_loc[1]] == goal:
+        for goal, attr in goals_dict.items():
+            goal_loc = attr['location']
+            if self.grid[goal_loc[0]][goal_loc[1]] == goal:
                 # print('goal {} is available'.format(goal_label))
                 available_goals.append(goal)
         return available_goals
 
-    def policy(self):
-        state_beliefs = {goal: self.state_beliefs[goal] for goal in self.get_available_goals()}
-        for beliefs in state_beliefs.values():
-            if beliefs['requires']:
-                prereq_goals = beliefs['requires']
-                for goal in prereq_goals:
-                    if goal not in state_beliefs.keys():
-                        beliefs['requires'].remove(goal)
+    def policy(self, depth, goals_score, goals_dict, spawn_points):
+        current_goals = self.get_available_goals(goals_dict)
+        print(current_goals)
+        if not current_goals:
+            print('no goals')
+            return 'STAY'
 
-        print('state beliefs', state_beliefs)
+        if spawn_points or (self.intention_relative_timestep == len(self.intention_path)):
+            print('computing intentions')
+            agent_loc = tuple(self.pos)
+            current_goals = self.get_available_goals(goals_dict)
+            self.intention_list = []
+            self.intention_path = []
+            self.intention_relative_timestep = 0
 
-        if state_beliefs:
-            intention_space = []
-            goal_permutations = permutations(state_beliefs.keys())
-            for goal_permutation in list(goal_permutations):
-                goal_permutation = list(goal_permutation)
-                intention_space.append(goal_permutation)
+            while current_goals:
+                utility_goals = []
+                goals_path = []
+                for goal in current_goals:
+                    reward = goals_score[goal]
+                    cost, goal_paths = self.compute_distance_cost(depth, agent_loc, goals_dict[goal]['location'])
+                    goal_path = random.choice(goal_paths)
+                    goals_path.append(goal_path[1:])
+                    utility_goal = reward - cost
+                    utility_goals.append(utility_goal)
 
-            path_of_sampled_intention = self.sample_intention_given_utility(intention_space, state_beliefs)
-            action = self.which_action(path_of_sampled_intention[0])
-        else:
-            action = 'STAY'
+                sampled_goal_ix = Categorical(self.softmax(torch.FloatTensor(utility_goals))).sample().item()
+                sampled_goal = current_goals[sampled_goal_ix]
+                sampled_goal_path = goals_path[sampled_goal_ix]
+
+                self.intention_path.extend(sampled_goal_path)
+                self.intention_list.append(sampled_goal)
+
+                agent_loc = goals_dict[sampled_goal]['location']
+
+                current_goals.pop(sampled_goal_ix)
+
+        print('INTENTIONS',self.intention_list)
+
+        action = self.which_action(self.intention_path[self.intention_relative_timestep])
+        self.intention_relative_timestep += 1
+
         return action
 
 

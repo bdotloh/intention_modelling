@@ -98,12 +98,6 @@ class MapEnv(MultiAgentEnv):
         self.spawn_points = []  # where agents can appear
 
         self.wall_points = []
-        # for row in range(self.base_map.shape[0]):
-        #     for col in range(self.base_map.shape[1]):
-        #         if self.base_map[row, col] == 'B' or (self.base_map[row, col] == 'S') or (self.base_map[row, col] == 'T'):
-        #             self.spawn_points.append([row, col])
-        #         elif self.base_map[row, col] == '@':
-        #             self.wall_points.append([row, col])
 
         ##### hardcode spawn points to be just within the center of the map.
         for row in range(self.base_map.shape[0]):
@@ -148,7 +142,6 @@ class MapEnv(MultiAgentEnv):
     def ascii_to_numpy(self, ascii_list):
         """converts a list of strings into a numpy array
 
-
         Parameters
         ----------
         ascii_list: list of strings
@@ -165,7 +158,7 @@ class MapEnv(MultiAgentEnv):
                 arr[row, col] = ascii_list[row][col]
         return arr
 
-    def step(self, actions, hor):
+    def step(self, actions):
         """Takes in a dict of actions and converts them to a map update
 
         Parameters
@@ -198,7 +191,7 @@ class MapEnv(MultiAgentEnv):
 
         for agent in self.agents.values():
             pos = agent.get_pos()
-            new_char = agent.complete(self.world_map[pos[0], pos[1]])
+            new_char = agent.complete(self.world_map[pos[0], pos[1]], self.goals_dict)
             rewards[agent.agent_id] = agent.compute_reward(self.world_map[pos[0], pos[1]], self.goal_scores_dict)
             self.world_map[pos[0], pos[1]] = new_char
 
@@ -206,13 +199,14 @@ class MapEnv(MultiAgentEnv):
         self.update_custom_moves(agent_actions)
 
         # execute spawning events
-        self.custom_map_update(hor)
+        self.timestep += 1
+        self.custom_map_update()
         map_with_agents = self.get_map_with_agents()
         self.maps.append(map_with_agents)
         # print(map_with_agents)
 
         for agent in self.agents.values():
-            agent.env = map_with_agents
+            agent.grid = map_with_agents
             rgb_arr = self.map_to_colors(agent.get_state(), self.color_map)
             agent.orientation = 'UP'
             rgb_arr = self.rotate_view(agent.orientation, rgb_arr)
@@ -234,20 +228,18 @@ class MapEnv(MultiAgentEnv):
             to be zero.
         """
         self.beam_pos = []
+        self.reset_map()
+
         self.agents = {}
         self.setup_agents()
-        self.reset_map()
-        # self.custom_map_update()
-        self.initial_map_update()
 
+        self.initial_map_update()
         map_with_agents = self.get_map_with_agents()
         self.maps.append(map_with_agents)
 
         observations = {}
         for agent in self.agents.values():
-            agent.env = map_with_agents
-            # agent.env = util.return_view(map_with_agents, agent.pos,
-            #                               agent.row_size, agent.col_size)
+            agent.grid = map_with_agents  # replace base map with map of agents
             rgb_arr = self.map_to_colors(agent.get_state(), self.color_map)
             observations[agent.agent_id] = rgb_arr
         return observations
@@ -289,6 +281,7 @@ class MapEnv(MultiAgentEnv):
             2D array of strings representing the map.
         """
         grid = np.copy(self.world_map)
+
         for agent_id, agent in self.agents.items():
             char_id = str(int(agent_id[-1]) + 1)
 
@@ -348,15 +341,6 @@ class MapEnv(MultiAgentEnv):
             path: If a string is passed, will save the image
                 to disk at this location.
         """
-        # map_with_agents = self.get_map_with_agents()
-        #
-        # rgb_arr = self.map_to_colors(map_with_agents)
-        # plt.imshow(rgb_arr, interpolation='nearest')
-        # if filename is None:
-        #     plt.show()
-        # else:
-        #     plt.savefig(filename)
-
         map_with_agents = self.get_map_with_agents()
 
         rgb_arr = self.map_to_colors(map_with_agents)
