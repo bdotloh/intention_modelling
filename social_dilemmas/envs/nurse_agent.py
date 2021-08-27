@@ -116,7 +116,8 @@ class NurseAgent(Agent):
         return action
         # 3- go right; 2 - go left; 1 - gdo down; 0 - go up;
 
-    def compute_distance_cost_from_agent(self, goal, goals_dict, depth=MAX_ASTAR_DEPTH, distance_factor=DISTANCE_FACTOR):
+    def compute_distance_cost_from_agent(self, goal, goals_dict, depth=MAX_ASTAR_DEPTH,
+                                         distance_factor=DISTANCE_FACTOR):
         distances = []
         paths_to_this_goal_label = []
 
@@ -276,42 +277,53 @@ class NurseAgent(Agent):
 
     def policy(self, depth, goals_score, goals_dict, spawn_points):
         current_goals = self.get_available_goals(goals_dict)
-        print(current_goals)
         if not current_goals:
             print('no goals')
             return 'STAY'
 
+        ############ GREEDY INTENTION SEARCH START ################
+        # compute intention (an ordered sequence of goals) when new goals appear on map or when agent completes previous intention
         if spawn_points or (self.intention_relative_timestep == len(self.intention_path)):
-            print('computing intentions')
             agent_loc = tuple(self.pos)
             current_goals = self.get_available_goals(goals_dict)
             self.intention_list = []
             self.intention_path = []
             self.intention_relative_timestep = 0
 
+            # loop until intention contains all goals in current goals
             while current_goals:
                 utility_goals = []
                 goals_path = []
+
+                # compute utility of each goal in current goal
                 for goal in current_goals:
+                    # get goal reward from goals_score dict
                     reward = goals_score[goal]
                     cost, goal_paths = self.compute_distance_cost(depth, agent_loc, goals_dict[goal]['location'])
+                    # randomly select path from all paths returned by astar
                     goal_path = random.choice(goal_paths)
                     goals_path.append(goal_path[1:])
                     utility_goal = reward - cost
                     utility_goals.append(utility_goal)
 
+                # sample goal from current goal given computed utility
                 sampled_goal_ix = Categorical(self.softmax(torch.FloatTensor(utility_goals))).sample().item()
                 sampled_goal = current_goals[sampled_goal_ix]
                 sampled_goal_path = goals_path[sampled_goal_ix]
 
-                self.intention_path.extend(sampled_goal_path)
+                # add sampled goal to intention list
                 self.intention_list.append(sampled_goal)
 
+                # extend intention path with path to sampled goal
+                self.intention_path.extend(sampled_goal_path)
+
+                # update agent's position
                 agent_loc = goals_dict[sampled_goal]['location']
 
+                # pop sample goal from current goal list
                 current_goals.pop(sampled_goal_ix)
-
-        print('INTENTIONS',self.intention_list)
+        ############ GREEDY INTENTION SEARCH END ################
+        print('INTENTIONS', self.intention_list)
 
         action = self.which_action(self.intention_path[self.intention_relative_timestep])
         self.intention_relative_timestep += 1
